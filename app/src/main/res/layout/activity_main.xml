@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    android:padding="20dp">
+
+    <TextView
+        android:id="@+id/statusText"
+        android:text="CINEMA MANUAL MODE"
+        android:textColor="#00FFCC"
+        android:textSize="22sp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"/>
+
+    <!-- ISO CONTROL -->
+    <TextView
+        android:id="@+id/isoLabel"
+        android:text="ISO"
+        android:textColor="#FFFFFF"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/statusText"/>
+
+    <SeekBar
+        android:id="@+id/isoSeek"
+        android:max="800"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/isoLabel"/>
+
+    <TextView
+        android:id="@+id/isoValue"
+        android:text="ISO:100"
+        android:textColor="#00FFCC"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/isoSeek"/>
+
+    <!-- SHUTTER SPEED -->
+    <TextView
+        android:id="@+id/shutterLabel"
+        android:text="SHUTTER SPEED"
+        android:textColor="#FFFFFF"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/isoValue"/>
+
+    <SeekBar
+        android:id="@+id/shutterSeek"
+        android:max="100"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/shutterLabel"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <TextView
+        android:id="@+id/shutterValue"
+        android:text="1/120"
+        android:textColor="#00FFCC"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/shutterSeek"/>
+
+    <Button
+        android:id="@+id/startBtn"
+        android:text="START RECORD"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/shutterValue"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/stopBtn"/>
+
+    <Button
+        android:id="@+id/stopBtn"
+        android:text="STOP"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="@id/startBtn"
+        app:layout_constraintStart_toEndOf="@id/startBtn"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
