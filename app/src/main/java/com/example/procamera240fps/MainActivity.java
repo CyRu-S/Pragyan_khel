@@ -22,9 +22,10 @@ import java.util.Arrays;
 
 public class MainActivity extends AppCompatActivity {
 
-    private TextView statusText, isoValue, shutterValue;
-    private SeekBar isoSeek, shutterSeek;
-    private Button startBtn, stopBtn;
+    private TextView errorText, isoValue, shutterValue;
+    private com.google.android.material.slider.Slider isoSlider, shutterSlider;
+    private com.google.android.material.button.MaterialButton recordButton;
+    private RadioGroup fpsGroup, resolutionGroup;
 
     private CameraDevice cameraDevice;
     private CameraCaptureSession session;
@@ -49,36 +50,37 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        statusText = findViewById(R.id.statusText);
-        isoSeek = findViewById(R.id.isoSeek);
-        shutterSeek = findViewById(R.id.shutterSeek);
+        errorText = findViewById(R.id.errorText);
+        isoSlider = findViewById(R.id.isoSlider);
+        shutterSlider = findViewById(R.id.shutterSlider);
         isoValue = findViewById(R.id.isoValue);
         shutterValue = findViewById(R.id.shutterValue);
-        startBtn = findViewById(R.id.startBtn);
-        stopBtn = findViewById(R.id.stopBtn);
+        recordButton = findViewById(R.id.recordButton);
+        fpsGroup = findViewById(R.id.fpsGroup);
+        resolutionGroup = findViewById(R.id.resolutionGroup);
 
         startThread();
 
-        isoSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                ISO = Math.max(100, progress);
-                isoValue.setText("ISO: " + ISO);
-            }
-            public void onStartTrackingTouch(SeekBar seekBar) {}
-            public void onStopTrackingTouch(SeekBar seekBar) {}
+        isoSlider.addOnChangeListener((slider, value, fromUser) -> {
+            ISO = (int) value;
+            isoValue.setText("ISO: " + ISO);
         });
 
-        shutterSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                SHUTTER = 1000000L * (progress + 1); // microseconds
-                shutterValue.setText("Exposure: " + SHUTTER/1000000 + " ms");
-            }
-            public void onStartTrackingTouch(SeekBar seekBar) {}
-            public void onStopTrackingTouch(SeekBar seekBar) {}
+        shutterSlider.addOnChangeListener((slider, value, fromUser) -> {
+            int progress = (int) value;
+            SHUTTER = 1000000L * (progress + 1); // microseconds
+            shutterValue.setText("Exposure: " + SHUTTER/1000000 + " ms");
         });
 
-        startBtn.setOnClickListener(v -> startRecording());
-        stopBtn.setOnClickListener(v -> stopRecording());
+        recordButton.setOnClickListener(v -> {
+            if (recordButton.getText().toString().equals(getString(R.string.record))) {
+                startRecording();
+                recordButton.setText("STOP");
+            } else {
+                stopRecording();
+                recordButton.setText(getString(R.string.record));
+            }
+        });
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -113,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onOpened(CameraDevice camera) {
                     cameraDevice = camera;
-                    statusText.setText("READY");
+                    errorText.setVisibility(android.view.View.GONE);
                 }
                 @Override public void onDisconnected(CameraDevice camera) {}
                 @Override public void onError(CameraDevice camera, int error) {}
@@ -179,7 +181,7 @@ public class MainActivity extends AppCompatActivity {
                             try {
                                 session.setRepeatingRequest(builder.build(), null, camHandler);
                                 recorder.start();
-                                statusText.setText("🔴 RECORDING MANUAL MODE");
+                                runOnUiThread(() -> errorText.setVisibility(android.view.View.GONE));
                             } catch (Exception e) {}
                         }
                         @Override public void onConfigureFailed(CameraCaptureSession s) {}
@@ -200,7 +202,11 @@ public class MainActivity extends AppCompatActivity {
             getContentResolver().update(savedVideoUri, values, null, null);
 
             recorder.reset();
-            statusText.setText("Saved ✔");
+            runOnUiThread(() -> {
+                errorText.setVisibility(android.view.View.VISIBLE);
+                errorText.setText("Saved ✔");
+                errorText.setTextColor(ContextCompat.getColor(MainActivity.this, android.R.color.holo_green_light));
+            });
 
         } catch (Exception e) {}
     }

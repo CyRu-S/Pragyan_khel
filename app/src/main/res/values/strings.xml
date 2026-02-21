@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">ProCamera240FPS</string>
+    <string name="iso">ISO</string>
+    <string name="shutter_speed">Shutter Speed</string>
+    <string name="fps">FPS</string>
+    <string name="fps_required">Requires compatible device</string>
+    <string name="resolution">Resolution</string>
+    <string name="record">Record</string>
+    <string name="recordings">Recordings</string>
 </resources>

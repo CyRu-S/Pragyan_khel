@@ -15,7 +15,7 @@
         android:allowBackup="true"
         android:label="ProCamera240fps"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+        android:theme="@style/Theme.ProCamera240FPS">
 
         <!-- Android 12+ requires exported flag -->
         <activity
