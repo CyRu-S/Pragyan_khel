@@ -38,12 +38,53 @@ public class MainActivity extends AppCompatActivity {
     private MediaRecorder recorder;
     private Uri savedVideoUri;
 
+    // Defaults (overridden by UI)
     private int ISO = 100;
-    private long SHUTTER = 8000000L; // nanoseconds (~1/120)
+    private long SHUTTER = 8_000_000L;
 
-    private final int WIDTH = 1280;
-    private final int HEIGHT = 720;
-    private final int TARGET_FPS = 120;
+    // 🔥 VARIABLES (NOT CONSTANTS)
+    private int WIDTH = 1280;
+    private int HEIGHT = 720;
+    private int TARGET_FPS = 120;
+
+    private void applyUiSelections() {
+
+        // FPS
+        int fpsId = fpsGroup.getCheckedRadioButtonId();
+        if (fpsId != -1) {
+            RadioButton rb = findViewById(fpsId);
+            if (rb != null) {
+                try {
+                    TARGET_FPS = Integer.parseInt(
+                            rb.getText().toString().replaceAll("[^0-9]", ""));
+                } catch (Exception ignored) {}
+            }
+        }
+
+        // Resolution
+        int resId = resolutionGroup.getCheckedRadioButtonId();
+        if (resId != -1) {
+            RadioButton rb = findViewById(resId);
+            if (rb != null) {
+                String txt = rb.getText().toString().toLowerCase().trim();
+                if (txt.contains("x")) {
+                    String[] parts = txt.replace(" ", "").split("x");
+                    if (parts.length == 2) {
+                        try {
+                            WIDTH = Integer.parseInt(parts[0]);
+                            HEIGHT = Integer.parseInt(parts[1]);
+                        } catch (Exception ignored) {}
+                    }
+                } else if (txt.contains("720")) {
+                    WIDTH = 1280; HEIGHT = 720;
+                } else if (txt.contains("1080")) {
+                    WIDTH = 1920; HEIGHT = 1080;
+                } else if (txt.contains("480")) {
+                    WIDTH = 640; HEIGHT = 480;
+                }
+            }
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,19 +102,19 @@ public class MainActivity extends AppCompatActivity {
 
         startThread();
 
-        isoSlider.addOnChangeListener((slider, value, fromUser) -> {
-            ISO = (int) value;
+        isoSlider.addOnChangeListener((s, v, f) -> {
+            ISO = (int) v;
             isoValue.setText("ISO: " + ISO);
         });
 
-        shutterSlider.addOnChangeListener((slider, value, fromUser) -> {
-            int progress = (int) value;
-            SHUTTER = 1000000L * (progress + 1); // microseconds
-            shutterValue.setText("Exposure: " + SHUTTER/1000000 + " ms");
+        shutterSlider.addOnChangeListener((s, v, f) -> {
+            SHUTTER = 1_000_000L * ((int) v + 1);
+            shutterValue.setText("Exposure: " + SHUTTER / 1_000_000 + " ms");
         });
 
         recordButton.setOnClickListener(v -> {
-            if (recordButton.getText().toString().equals(getString(R.string.record))) {
+            if (recordButton.getText().toString()
+                    .equals(getString(R.string.record))) {
                 startRecording();
                 recordButton.setText("STOP");
             } else {
@@ -105,25 +146,27 @@ public class MainActivity extends AppCompatActivity {
     private void openCamera() {
         try {
             cameraManager = (CameraManager) getSystemService(CAMERA_SERVICE);
-            String cameraId = cameraManager.getCameraIdList()[0];
-            cameraManager.openCamera(cameraId, stateCallback, camHandler);
-        } catch (Exception e) {}
+            cameraManager.openCamera(
+                    cameraManager.getCameraIdList()[0],
+                    stateCallback, camHandler);
+        } catch (Exception ignored) {}
     }
 
     private final CameraDevice.StateCallback stateCallback =
             new CameraDevice.StateCallback() {
-                @Override
-                public void onOpened(CameraDevice camera) {
-                    cameraDevice = camera;
+                @Override public void onOpened(CameraDevice c) {
+                    cameraDevice = c;
                     errorText.setVisibility(android.view.View.GONE);
                 }
-                @Override public void onDisconnected(CameraDevice camera) {}
-                @Override public void onError(CameraDevice camera, int error) {}
+                @Override public void onDisconnected(CameraDevice c) {}
+                @Override public void onError(CameraDevice c, int e) {}
             };
 
     private FileDescriptor getFD(Uri uri) {
         try {
-            return getContentResolver().openFileDescriptor(uri, "rw").getFileDescriptor();
+            return getContentResolver()
+                    .openFileDescriptor(uri, "rw")
+                    .getFileDescriptor();
         } catch (Exception e) { return null; }
     }
 
@@ -144,70 +187,113 @@ public class MainActivity extends AppCompatActivity {
         recorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
         recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
         recorder.setOutputFile(getFD(savedVideoUri));
-        recorder.setVideoEncodingBitRate(20000000);
+
+        // 🔥 METADATA APPLIED HERE
         recorder.setVideoFrameRate(TARGET_FPS);
         recorder.setVideoSize(WIDTH, HEIGHT);
+        recorder.setVideoEncodingBitRate(20_000_000);
         recorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
 
         recorder.prepare();
     }
 
     private void startRecording() {
-
         try {
+            applyUiSelections();
             prepareRecorder();
 
             Surface recSurface = recorder.getSurface();
 
-            builder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
-            builder.addTarget(recSurface);
+            if (TARGET_FPS >= 240) {
+                // 🔥 HIGH SPEED SESSION (REQUIRED FOR 240 FPS)
+                builder = cameraDevice.createCaptureRequest(
+                        CameraDevice.TEMPLATE_RECORD);
+                builder.addTarget(recSurface);
 
-            // 🔥 FULL MANUAL CONTROL
-            builder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_OFF);
-            builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
+                builder.set(CaptureRequest.CONTROL_MODE,
+                        CaptureRequest.CONTROL_MODE_AUTO);
 
-            builder.set(CaptureRequest.SENSOR_SENSITIVITY, ISO);
-            builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, SHUTTER);
+                cameraDevice.createConstrainedHighSpeedCaptureSession(
+                        Arrays.asList(recSurface),
+                        new CameraCaptureSession.StateCallback() {
+                            @Override
+                            public void onConfigured(CameraCaptureSession s) {
+                                session = s;
+                                try {
+                                    CameraConstrainedHighSpeedCaptureSession hs =
+                                            (CameraConstrainedHighSpeedCaptureSession) s;
 
-            builder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                    new Range<>(TARGET_FPS, TARGET_FPS));
+                                    for (CaptureRequest req :
+                                            hs.createHighSpeedRequestList(builder.build())) {
+                                        hs.setRepeatingBurst(
+                                                hs.createHighSpeedRequestList(req),
+                                                null,
+                                                camHandler);
+                                    }
 
-            cameraDevice.createCaptureSession(
-                    Arrays.asList(recSurface),
-                    new CameraCaptureSession.StateCallback() {
-                        @Override
-                        public void onConfigured(CameraCaptureSession s) {
-                            session = s;
-                            try {
-                                session.setRepeatingRequest(builder.build(), null, camHandler);
-                                recorder.start();
-                                runOnUiThread(() -> errorText.setVisibility(android.view.View.GONE));
-                            } catch (Exception e) {}
-                        }
-                        @Override public void onConfigureFailed(CameraCaptureSession s) {}
-                    }, camHandler);
+                                    recorder.start();
+                                } catch (Exception e) {}
+                            }
+
+                            @Override
+                            public void onConfigureFailed(CameraCaptureSession s) {}
+                        }, camHandler
+                );
+
+            } else {
+                // ✅ NORMAL SESSION (≤120 FPS)
+                builder = cameraDevice.createCaptureRequest(
+                        CameraDevice.TEMPLATE_RECORD);
+                builder.addTarget(recSurface);
+
+                builder.set(CaptureRequest.CONTROL_MODE,
+                        CaptureRequest.CONTROL_MODE_OFF);
+                builder.set(CaptureRequest.CONTROL_AE_MODE,
+                        CaptureRequest.CONTROL_AE_MODE_OFF);
+
+                builder.set(CaptureRequest.SENSOR_SENSITIVITY, ISO);
+                builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, SHUTTER);
+
+                builder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
+                        new Range<>(TARGET_FPS, TARGET_FPS));
+
+                cameraDevice.createCaptureSession(
+                        Arrays.asList(recSurface),
+                        new CameraCaptureSession.StateCallback() {
+                            @Override
+                            public void onConfigured(CameraCaptureSession s) {
+                                session = s;
+                                try {
+                                    session.setRepeatingRequest(
+                                            builder.build(), null, camHandler);
+                                    recorder.start();
+                                } catch (Exception e) {}
+                            }
+
+                            @Override
+                            public void onConfigureFailed(CameraCaptureSession s) {}
+                        }, camHandler
+                );
+            }
 
         } catch (Exception e) {}
     }
 
     private void stopRecording() {
-
         try {
             session.stopRepeating();
             session.close();
             recorder.stop();
 
-            ContentValues values = new ContentValues();
-            values.put(MediaStore.Video.Media.IS_PENDING, 0);
-            getContentResolver().update(savedVideoUri, values, null, null);
+            ContentValues v = new ContentValues();
+            v.put(MediaStore.Video.Media.IS_PENDING, 0);
+            getContentResolver().update(savedVideoUri, v, null, null);
 
             recorder.reset();
-            runOnUiThread(() -> {
-                errorText.setVisibility(android.view.View.VISIBLE);
-                errorText.setText("Saved ✔");
-                errorText.setTextColor(ContextCompat.getColor(MainActivity.this, android.R.color.holo_green_light));
-            });
 
-        } catch (Exception e) {}
+            errorText.setText("Saved ✔");
+            errorText.setVisibility(android.view.View.VISIBLE);
+
+        } catch (Exception ignored) {}
     }
 }
