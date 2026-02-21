@@ -79,7 +79,11 @@
                         android:valueFrom="100"
                         android:valueTo="3200"
                         android:value="400"
-                        app:labelBehavior="gone" />
+                        app:labelBehavior="gone"
+                        app:thumbColor="@color/white"
+                        app:haloColor="#40FFFFFF"
+                        app:trackColorActive="@color/white"
+                        app:trackColorInactive="#66FFFFFF" />
 
                     <TextView
                         android:id="@+id/isoValue"
@@ -120,7 +124,11 @@
                         android:valueFrom="0"
                         android:valueTo="5"
                         android:value="0"
-                        app:labelBehavior="gone" />
+                        app:labelBehavior="gone" 
+                        app:thumbColor="@color/white"
+                        app:haloColor="#40FFFFFF"
+                        app:trackColorActive="@color/white"
+                        app:trackColorInactive="#66FFFFFF"/>
 
                     <TextView
                         android:id="@+id/shutterValue"
